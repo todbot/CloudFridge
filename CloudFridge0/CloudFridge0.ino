@@ -1,5 +1,5 @@
 /*
- * Fridge Door Logger with Pachube
+ * CloudFridge0 -- Fridge Door Logger with Pachube
  * 
  * Basis of this sketch from "PachubeClientString" example by Tom Igoe
  *
@@ -37,16 +37,17 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 // initialize the library instance:
 EthernetClient client;
 
-unsigned long lastConnectionTime;   // last time connected to server, in millis
+unsigned long nextConnectionTime;   // next time to connect to server, in millis
 boolean lastConnected = false;      // state of connection last time through
 unsigned int postingInterval = 15000;  // update period to Pachube.com
 
 unsigned long doorOpenings; // how many times the door has been opened
-unsigned long doorLastTime; // the last time the input changed
+unsigned long doorNextTime; // the next time we check the door
 unsigned long doorUpdateMillis = 100; // time between door observations
 int doorOpenCount;  // number of doorUpdateMillis door has been open
 int doorOpen;
 int doorOpenLast;
+char datastr[80];
 
 //
 void setup()
@@ -99,14 +100,10 @@ void loop()
 
   // if you're not connected, and ten seconds have passed since
   // your last connection, then connect again and send data
-  if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
+  if(!client.connected() && ((long)(millis() - nextConnectionTime) >= 0) ) {
     // convert two data readings to a comma-separated string
     unsigned long doorOpenMillis = doorOpenCount * doorUpdateMillis;
-    //String data0String = String( doorOpenMillis );
-    //String data1String = String( doorOpenings );
-    //dataString += "," + String( doorOpenings );
-    char datastr[80];
-    sprintf(datastr, "%ld,%ld", doorOpenMillis, doorOpenings);
+    sprintf(datastr, "%ld,%ld", doorOpenings, doorOpenMillis);
 
     sendData( datastr );
 
@@ -134,8 +131,8 @@ void resetDoorState()
 // and log the number of times its been opened
 void updateDoorState()
 {
-  if( (millis() - doorLastTime) > doorUpdateMillis ) {
-    doorLastTime = millis();
+  if( (long)(millis() - doorNextTime) >= 0 ) {
+    doorNextTime += doorUpdateMillis;
     doorOpen = digitalRead( doorPin );  // read the sensor:
 
     if( doorOpen == HIGH ) { 
@@ -156,11 +153,10 @@ void updateDoorState()
 
 // this method makes a HTTP connection to the server
 // sending data to Pachube
-//void sendData(String thisData) 
 void sendData(char* dataString )
 {
-  Serial.print("sendData: "); Serial.print(dataString);
-  Serial.print(", strlen:"); Serial.println(strlen(dataString));
+  Serial.print("sendData: '"); Serial.print(dataString);
+  Serial.print("' strlen:"); Serial.println(strlen(dataString));
 
   // if there's a successful connection:
   if( client.connect("api.pachube.com", 80) ) {
@@ -182,12 +178,13 @@ void sendData(char* dataString )
     client.println( dataString );
 
     // note the time that the connection was made:
-    lastConnectionTime = millis();
+    nextConnectionTime = millis() + postingInterval;
   } 
   else {
     // if you couldn't make a connection:
     Serial.println("connection failed");
     client.stop();
-    //BlinkM_playScript( blinkm_addr, 3, 0,0); // red blink error
+    BlinkM_playScript( blinkm_addr, 3, 0,2); // red blink error
+    delay(500);
   }
 }
