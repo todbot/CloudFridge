@@ -39,7 +39,7 @@ EthernetClient client;
 
 unsigned long nextConnectionTime;   // next time to connect to server, in millis
 boolean lastConnected = false;      // state of connection last time through
-unsigned int postingInterval = 15000;  // update period to Pachube.com
+unsigned int postingInterval = 30000;  // update period to Pachube.com
 
 unsigned long doorOpenings; // how many times the door has been opened
 unsigned long doorNextTime; // the next time we check the door
@@ -54,7 +54,7 @@ void setup()
 {
   // start serial port:
   Serial.begin(19200);
-  Serial.println("CloudFridge0");
+  Serial.println("\nCloudFridge0");
   
   pinMode( doorPin, INPUT);
   digitalWrite( doorPin, HIGH); // turn on internal pullup resistor
