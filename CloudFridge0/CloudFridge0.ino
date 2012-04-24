@@ -44,7 +44,7 @@ unsigned int postingInterval = 15000;  // update period to Pachube.com
 unsigned long doorOpenings; // how many times the door has been opened
 unsigned long doorNextTime; // the next time we check the door
 unsigned long doorUpdateMillis = 100; // time between door observations
-int doorOpenCount;  // number of doorUpdateMillis door has been open
+unsigned long doorOpenMillis;  // number of doorUpdateMillis door has been open
 int doorOpen;
 int doorOpenLast;
 char datastr[80];
@@ -54,7 +54,7 @@ void setup()
 {
   // start serial port:
   Serial.begin(19200);
-  Serial.println("FridgeDoorLogger");
+  Serial.println("CloudFridge0");
   
   pinMode( doorPin, INPUT);
   digitalWrite( doorPin, HIGH); // turn on internal pullup resistor
@@ -102,7 +102,7 @@ void loop()
   // your last connection, then connect again and send data
   if(!client.connected() && ((long)(millis() - nextConnectionTime) >= 0) ) {
     // convert two data readings to a comma-separated string
-    unsigned long doorOpenMillis = doorOpenCount * doorUpdateMillis;
+    //unsigned long doorOpenMillis = doorOpenCount * doorUpdateMillis;
     sprintf(datastr, "%ld,%ld", doorOpenings, doorOpenMillis);
 
     sendData( datastr );
@@ -118,10 +118,10 @@ void resetDoorState()
 {
   doorOpenings = 0;
   if( !doorOpen ) {
-    doorOpenCount = 0;  // reset for next data collection period
+    doorOpenMillis = 0;  // reset for next data collection period
   }
   else { 
-    doorOpenCount = 1;  // carry over the fact the door is open to next window
+    doorOpenMillis = doorUpdateMillis;  // carry over fact door is open 
   }
 
 }
@@ -136,12 +136,12 @@ void updateDoorState()
     doorOpen = digitalRead( doorPin );  // read the sensor:
 
     if( doorOpen == HIGH ) { 
-      doorOpenCount++;  
+      doorOpenMillis += doorUpdateMillis;  
       Serial.println("doorOpen!");
       BlinkM_fadeToRGB( blinkm_addr, 0x00,0x00,0xff );  // blue
       if( doorOpenLast == LOW ) {
         doorOpenings++;
-        Serial.print("doorOpenCount=");Serial.print(doorOpenCount,DEC);
+        Serial.print("doorOpenMillis=");Serial.print(doorOpenMillis,DEC);
         Serial.print(",doorOpenings=");Serial.println(doorOpenings,DEC);
       }
     } else {
